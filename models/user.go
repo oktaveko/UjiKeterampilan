@@ -1,8 +1,13 @@
 package models
 
+import "gorm.io/gorm"
+
 type User struct {
-	Id         int        `json:"id"`
-	Name       string     `json:"name"`
-	Password   string     `json:"password"`
-	CreditCard CreditCard `json:"creditCard"`
+	gorm.Model
+	FirstName     string `gorm:"not null" json:"firstname"`
+	LastName      string `gorm:"not null" json:"lastname"`
+	Email         string `gorm:"unique, not null" json:"email"`
+	Password      string `gorm:"not null" json:"password"`
+	BorrowedBooks []Book `json:"borrowedbooks"`
+	IsAdmin       bool   `json: "isadmin"`
 }

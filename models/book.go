@@ -1,6 +1,14 @@
 package models
 
+import (
+	"gorm.io/gorm"
+	"time"
+)
+
 type Book struct {
-	Id    int    `json:"id"`
-	Title string `json:"title"`
+	gorm.Model
+	Title             string `gorm:"not null" json:"title"`
+	Author            string `gorm:"not null" json:"author"`
+	PublishedAt       time.Time
+	AvailableQuantity int
 }
