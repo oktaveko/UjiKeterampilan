@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	"github.com/labstack/echo/v4"
 	"gorm.io/gorm"
 	"net/http"
@@ -82,6 +83,12 @@ func (c *Controller) ReturnBook(ctx echo.Context, tx *gorm.DB, bookIDs []uint) e
 				return err // Rollback akan terjadi karena error saat melakukan perubahan pada peminjaman
 			}
 		}
+
+		// Menghapus semua BorrowedBooks yang sudah dikembalikan
+		if err := tx.Where("user_id = ? AND returned = ?", ctx.Get("user_id").(uint), true).Unscoped().Delete(&models.Borrowing{}).Error; err != nil {
+			return err
+		}
+
 		return nil
 	})
 }
@@ -116,4 +123,43 @@ func (c *Controller) AutomateReturnBooks() {
 	}
 
 	tx.Commit()
+}
+
+func (c *Controller) ManualReturn(ctx echo.Context) error {
+	userID, _ := strconv.Atoi(ctx.Param("user_id"))
+	authenticatedUserID := ctx.Get("user_id").(uint) // Ambil user_id dari JWT token
+
+	if userID != int(authenticatedUserID) {
+		return ctx.JSON(http.StatusForbidden, map[string]string{"error": "Forbidden: You can return books for your own user_id"})
+	}
+
+	var user models.User
+	if err := c.db.Preload("BorrowedBooks").First(&user, userID).Error; err != nil {
+		// Periksa apakah error adalah record not found
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusBadRequest, map[string]string{"message": "You don't have any borrowed books to return"})
+		}
+		return ctx.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to get user information"})
+	}
+
+	// Menggunakan transaksi untuk mengembalikan semua buku yang dipinjam
+	err := c.db.Transaction(func(tx *gorm.DB) error {
+		var bookIDs []uint
+		for _, book := range user.BorrowedBooks {
+			bookIDs = append(bookIDs, book.ID)
+		}
+
+		if err := c.ReturnBook(ctx, tx, bookIDs); err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return ctx.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to return books"})
+	}
+
+	return ctx.JSON(http.StatusOK, map[string]string{"message": "Books returned successfully"})
+
 }

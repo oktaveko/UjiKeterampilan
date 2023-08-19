@@ -19,6 +19,7 @@ func SetupRoutes(e *echo.Echo, c *controllers.Controller) {
 	protected := e.Group("/myaccount")
 	protected.Use(middlewares.JWTMiddleware())
 	protected.POST("/users/:user_id/borrow", c.BorrowBooks)
+	protected.POST("/users/:user_id/return", c.ManualReturn)
 	protected.DELETE("/users/:user_id/delete", c.DeleteUser)
 
 	// Admin-Only Routes
