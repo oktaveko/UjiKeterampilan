@@ -3,63 +3,69 @@ package controllers
 import (
 	"github.com/labstack/echo/v4"
 	"net/http"
-	"ujiketerampilan/configs"
+	"strconv"
 	"ujiketerampilan/models"
 )
 
-func AddBookController(c echo.Context) error {
-	var requestBook models.Book
-	c.Bind(&requestBook)
-
-	// masukkan ke database
-	result := configs.DB.Create(&requestBook)
-
-	if result.Error != nil {
-		return c.JSON(http.StatusInternalServerError, models.BaseResponse{
-			Status:  false,
-			Message: "Failed insert data books",
-			Data:    nil,
-		})
-	}
-
-	return c.JSON(http.StatusOK, models.BaseResponse{
-		Status:  true,
-		Message: "Berhasil",
-		Data:    requestBook,
-	})
-
-}
-
-func GetDetailBookController(c echo.Context) error {
-
-	// id, _ := strconv.Atoi(c.Param("id"))
-
-	var book models.Book = models.Book{}
-
-	return c.JSON(http.StatusOK, models.BaseResponse{
-		Status:  true,
-		Message: "Berhasil",
-		Data:    book,
-	})
-
-}
-
-func GetBooksController(c echo.Context) error {
-
+func (c *Controller) GetBooks(ctx echo.Context) error {
 	var books []models.Book
+	c.db.Select("title", "author", "available_quantity").Find(&books)
 
-	result := configs.DB.Find(&books)
-	if result.Error != nil {
-		return c.JSON(http.StatusInternalServerError, models.BaseResponse{
-			Status:  false,
-			Message: "Failed insert data books",
-			Data:    nil,
-		})
+	// Membuat slice baru untuk menyimpan informasi yang dipilih
+	var simplifiedBooks []map[string]interface{}
+	for _, book := range books {
+		simplifiedBook := map[string]interface{}{
+			"title":         book.Title,
+			"author":        book.Author,
+			"unitAvailable": book.AvailableQuantity,
+		}
+		simplifiedBooks = append(simplifiedBooks, simplifiedBook)
 	}
 
-	return c.JSON(http.StatusOK, models.BaseResponse{
-		Status:  true,
-		Message: "Berhasil",
-		Data:    books,
-	})
+	return ctx.JSON(http.StatusOK, simplifiedBooks)
+}
+
+func (c *Controller) GetBookByID(ctx echo.Context) error {
+	bookID, _ := strconv.Atoi(ctx.Param("book_id"))
+
+	var book models.Book
+	if err := c.db.First(&book, bookID).Error; err != nil {
+		return ctx.JSON(http.StatusNotFound, map[string]string{"error": "Book not found"})
+	}
+
+	return ctx.JSON(http.StatusOK, book)
+}
+
+func (c *Controller) CreateBook(ctx echo.Context) error {
+	var book models.Book
+	if err := ctx.Bind(&book); err != nil {
+		return ctx.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid data"})
+	}
+
+	// Memastikan semua field yang diperlukan terisi
+	if book.Title == "" || book.Author == "" || book.PublishedAt.IsZero() || book.AvailableQuantity == 0 {
+		return ctx.JSON(http.StatusBadRequest, map[string]string{"error": "Missing required fields"})
+	}
+
+	c.db.Create(&book)
+
+	return ctx.JSON(http.StatusCreated, book)
+}
+
+func (c *Controller) UpdateBook(ctx echo.Context) error {
+	bookID, _ := strconv.Atoi(ctx.Param("book_id"))
+
+	var book models.Book
+	if err := c.db.First(&book, bookID).Error; err != nil {
+		return ctx.JSON(http.StatusNotFound, map[string]string{"error": "Book not found"})
+	}
+
+	var updatedBook models.Book
+	if err := ctx.Bind(&updatedBook); err != nil {
+		return ctx.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid data"})
+	}
+
+	c.db.Model(&book).Updates(updatedBook)
+
+	return ctx.JSON(http.StatusOK, book)
 }
