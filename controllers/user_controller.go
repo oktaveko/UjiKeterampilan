@@ -54,7 +54,7 @@ func (c *Controller) RegisterUser(ctx echo.Context) error {
 	user.Password = string(hashedPassword)
 
 	// Cek Referal dan set IsAdmin jika cocok
-	if user.Referal == "1234" {
+	if user.Referal == os.Getenv("REFERAL_KEY") {
 		user.IsAdmin = true
 	}
 
