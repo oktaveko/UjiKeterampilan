@@ -7,8 +7,9 @@ import (
 
 type Book struct {
 	gorm.Model
-	Title             string `gorm:"not null" json:"title"`
-	Author            string `gorm:"not null" json:"author"`
+	Title             string
+	Author            string
 	PublishedAt       time.Time
-	AvailableQuantity int
+	AvailableQuantity uint
+	Borrowings        []Borrowing `gorm:"many2many:borrowings;"`
 }

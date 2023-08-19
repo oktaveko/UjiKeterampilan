@@ -1,10 +1,10 @@
 package controllers
 
 import (
-	"UjiKeterampilan/configs"
-	"UjiKeterampilan/models"
 	"github.com/labstack/echo/v4"
 	"net/http"
+	"ujiketerampilan/configs"
+	"ujiketerampilan/models"
 )
 
 func AddBookController(c echo.Context) error {

@@ -1,12 +1,12 @@
 package controllers
 
 import (
-	"UjiKeterampilan/models"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/labstack/echo/v4"
 	"net/http"
 	"os"
 	"time"
+	"ujiketerampilan/models"
 )
 
 type jwtCustomClaims struct {

@@ -1,19 +1,37 @@
 package main
 
 import (
-	"UjiKeterampilan/configs"
-	"UjiKeterampilan/routes"
-	"github.com/labstack/echo/v4"
-	"os"
-
 	"github.com/joho/godotenv"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
+	"os"
+	"time"
+	"ujiketerampilan/configs"
+	"ujiketerampilan/controllers"
+	"ujiketerampilan/routes"
 )
 
 func main() {
 	// loadEnv()
-	configs.InitDatabase()
 	e := echo.New()
-	routes.InitRoute(e)
+
+	configs.InitDatabase()
+
+	e.Use(middleware.Logger())
+	e.Use(middleware.Recover())
+
+	// Inisialisasi controller dengan database
+	controller := controllers.NewController(configs.DB)
+
+	// Routing
+	routes.SetupRoutes(e, controller)
+
+	go func() {
+		for {
+			controller.AutomateReturnBooks()
+			time.Sleep(1 * time.Hour)
+		}
+	}()
 
 	e.Start(getPort())
 }

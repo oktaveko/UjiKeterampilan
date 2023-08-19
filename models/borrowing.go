@@ -12,3 +12,7 @@ type Borrowing struct {
 	DueDate  time.Time
 	Returned bool
 }
+
+func (Borrowing) TableName() string {
+	return "borrowings"
+}
