@@ -102,10 +102,20 @@ func (c *Controller) GetUserByID(ctx echo.Context) error {
 		return ctx.JSON(http.StatusNotFound, map[string]string{"error": "User not found"})
 	}
 
+	var borrowings []models.Borrowing
+	if err := c.db.Model(&models.Borrowing{}).Where("user_id = ?", userID).Pluck("book_id", &borrowings).Error; err != nil {
+		return ctx.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to get borrowed books"})
+	}
+
+	var borrowedBookIDs []uint
+	for _, borrowing := range borrowings {
+		borrowedBookIDs = append(borrowedBookIDs, borrowing.BookID)
+	}
+
 	return ctx.JSON(http.StatusOK, map[string]interface{}{
 		"FirstName":     user.FirstName,
 		"LastName":      user.LastName,
-		"BorrowedBooks": user.BorrowedBooks,
+		"BorrowedBooks": borrowedBookIDs,
 	})
 }
 
